@@ -1,0 +1,17 @@
+[
+  { "id": "Q1", "type": "texto", "content": "4, 8, 16, ?", "answer": 32 },
+  { "id": "Q2", "type": "texto", "content": "2 + 2 x 2 = ?", "answer": 6 },
+  { "id": "Q3", "type": "texto", "content": "4, 11, 18, ?", "answer": 25 },
+  { "id": "Q4", "type": "texto", "content": "5 + 5 x 5 - 5 = ?", "answer": 25 },
+  { "id": "Q5", "type": "texto", "content": "10 + 10 x 0 + 10 = ?", "answer": 20 },
+  { "id": "Q6", "type": "texto", "content": "3, 6, 12, 24, ?", "answer": 48 },
+  { "id": "Q7", "type": "texto", "content": "7 x 8 - 6 = ?", "answer": 50 },
+  { "id": "Q8", "type": "texto", "content": "100 / 4 + 15 = ?", "answer": 40 },
+  { "id": "Q9", "type": "texto", "content": "9, 16, 25, 36, ?", "answer": 49 },
+  { "id": "Q10", "type": "texto", "content": "12 x 12 - 44 = ?", "answer": 100 },
+  { "id": "Q11", "type": "texto", "content": "1, 1, 2, 3, 5, 8, ?", "answer": 13 },
+  { "id": "Q12", "type": "texto", "content": "(15 + 25) / 2 = ?", "answer": 20 },
+  { "id": "Q13", "type": "texto", "content": "50% de 80 = ?", "answer": 40 },
+  { "id": "Q14", "type": "texto", "content": "3 x 3 x 3 = ?", "answer": 27 },
+  { "id": "Q15", "type": "texto", "content": "81 / 9 + 11 = ?", "answer": 20 }
+]

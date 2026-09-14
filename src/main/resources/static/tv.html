@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riddles</title>
+    <!-- Google Fonts: Cinzel (Fonte Enigmática) e Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --color-bg: #FFFFFF;
+            --color-surface: #FFFFFF;
+            --color-text: #000000;
+            --color-border: #E5E7EB;
+
+            --font-enigmatic: 'Cinzel', serif;
+            --font-body: 'Inter', sans-serif;
+
+            --color-gold: #D4AF37;
+            --color-silver: #A0A0A0;
+            --color-bronze: #CD7F32;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            text-align: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* HEADING APENAS RIDDLES COM FONTE ENIGMÁTICA E PRETA */
+        .title-brand {
+            font-family: var(--font-enigmatic);
+            font-size: 5rem;
+            font-weight: 900;
+            color: var(--color-text);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 3rem;
+        }
+
+        /* BOTÕES DE SELEÇÃO DE MODO: APENAS O TEXTO "Single Player" OU "Multiplayer" */
+        .mode-container {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn-mode {
+            background: #000000;
+            color: #FFFFFF;
+            font-family: var(--font-enigmatic);
+            font-size: 1.5rem;
+            font-weight: 700;
+            padding: 1.5rem 3.5rem;
+            border: 2px solid #000000;
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-mode:hover {
+            background: #FFFFFF;
+            color: #000000;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+
+        /* LOBBY */
+        .lobby-box {
+            background: var(--color-surface);
+            border: 2px solid #000000;
+            border-radius: 16px;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .qr-wrapper {
+            background: #FFFFFF;
+            padding: 1rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            width: 360px;
+            height: 360px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .room-code-badge {
+            font-family: var(--font-enigmatic);
+            font-size: 2rem;
+            font-weight: 700;
+            color: #000000;
+            letter-spacing: 4px;
+        }
+
+        .btn-default {
+            height: 52px;
+            padding: 0 2.5rem;
+            border-radius: 12px;
+            background: #000000;
+            color: #FFFFFF;
+            font-family: var(--font-enigmatic);
+            font-size: 1.2rem;
+            font-weight: 700;
+            border: 2px solid #000000;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-default:hover:not(:disabled) {
+            background: #FFFFFF;
+            color: #000000;
+        }
+
+        .btn-default:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* PROGRESS BAR TOPO */
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: #E5E7EB;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: #000000;
+            width: 100%;
+            transition: width 1s linear;
+        }
+
+        /* GAMEPLAY */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 3rem;
+            background: #FFFFFF;
+            border: 2px solid #000000;
+            padding: 1.2rem 2.5rem;
+            border-radius: 16px;
+        }
+
+        .scoreboard {
+            font-family: var(--font-enigmatic);
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            gap: 3rem;
+            color: #000000;
+        }
+
+        .timer-badge {
+            font-family: var(--font-enigmatic);
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .question-card {
+            background: #FFFFFF;
+            border: 3px solid #000000;
+            border-radius: 16px;
+            padding: 4rem 3rem;
+            width: 100%;
+            max-width: 900px;
+            min-height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .question-text {
+            font-family: var(--font-enigmatic);
+            font-size: 4rem;
+            font-weight: 900;
+            color: #000000;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .feedback-banner {
+            height: 48px;
+            font-family: var(--font-enigmatic);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #000000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* RANKING LIST */
+        .ranking-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 1.5rem;
+        }
+
+        .ranking-card {
+            height: 64px;
+            background: #FFFFFF;
+            border: 1px solid #000000;
+            border-radius: 12px;
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ranking-card.top-1 {
+            height: 80px;
+            border-top: 4px solid var(--color-gold);
+        }
+
+        .ranking-card.top-2 {
+            height: 80px;
+            border-top: 4px solid var(--color-silver);
+        }
+
+        .ranking-card.top-3 {
+            height: 80px;
+            border-top: 4px solid var(--color-bronze);
+        }
+
+        .rank-pos {
+            font-family: var(--font-enigmatic);
+            font-size: 1.3rem;
+            font-weight: 700;
+            width: 50px;
+            color: #000000;
+        }
+
+        .rank-name {
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: #000000;
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .rank-score {
+            font-family: var(--font-enigmatic);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #000000;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="progress-bar-container">
+        <div id="progress-fill" class="progress-bar-fill"></div>
+    </div>
+
+    <div class="main-container">
+
+        <!-- TELA 1: MENU INICIAL -->
+        <div id="screen-menu" class="screen active">
+            <!-- HEADING APENAS COM O NOME RIDDLES -->
+            <h1 class="title-brand">Riddles</h1>
+            
+            <!-- BOTÕES APENAS COM O CONTEXTO "Single Player" OU "Multiplayer" SEM EMOJIS E SEM TEXTOS -->
+            <div class="mode-container">
+                <button class="btn-mode" onclick="selectMode('single')">Single Player</button>
+                <button class="btn-mode" onclick="selectMode('multi')">Multiplayer</button>
+            </div>
+        </div>
+
+        <!-- TELA 2: LOBBY -->
+        <div id="screen-lobby" class="screen">
+            <h1 class="title-brand" style="font-size: 3.5rem; margin-bottom: 2rem;">Riddles</h1>
+
+            <div id="qrcode" style="margin-bottom: 2rem;"></div>
+            
+            <p id="lobby-status" style="font-size: 1.2rem; color: #000000; font-weight: 600; margin-bottom: 1.5rem;">Conectando...</p>
+            
+            <button id="btn-start-game" class="btn-default" disabled onclick="startGame()">Iniciar Jogo</button>
+        </div>
+
+        <!-- TELA 3: GAMEPLAY -->
+        <div id="screen-game" class="screen">
+            <div class="game-header">
+                <div class="scoreboard" id="scoreboard"></div>
+                <div class="timer-badge"><span id="timer-count">60</span>s</div>
+            </div>
+
+            <div class="question-card">
+                <div class="question-text" id="question-display">Carregando...</div>
+            </div>
+
+            <div class="feedback-banner" id="feedback-banner"></div>
+        </div>
+
+        <!-- TELA 4: GAMEOVER & RANKING -->
+        <div id="screen-gameover" class="screen">
+            <h1 class="title-brand" style="font-size: 3.5rem; margin-bottom: 1rem;" id="gameover-title">Ranking</h1>
+            <p id="gameover-subtitle" style="font-size: 1.2rem; color: #444444; font-weight: 600;"></p>
+
+            <div id="ranking-container" class="ranking-container">
+                <!-- Preenchido via JS -->
+            </div>
+
+            <button class="btn-default" style="margin-top: 2rem;" onclick="resetToMenu()">Voltar ao Menu Principal</button>
+        </div>
+
+    </div>
+
+    <script>
+        let selectedMode = 'single';
+        let roomCode = null;
+        let socket = null;
+        let timerInterval = null;
+        let timeLeft = 60;
+        let currentP1Score = 0;
+        let currentP2Score = 0;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'correct') {
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                } else if (type === 'start') {
+                    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                }
+            } catch(e) {}
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function selectMode(mode) {
+            selectedMode = mode;
+            showScreen('screen-lobby');
+            connectWebSocket();
+        }
+
+        function connectWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws?role=tv&mode=${selectedMode}`;
+            
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => console.log("TV conectada ao WebSocket");
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'ROOM_CREATED') {
+                    roomCode = data.roomCode;
+                    renderQrCode(roomCode);
+                    updateLobbyStatus(0, false);
+                } else if (data.type === 'PLAYER_JOINED' || data.type === 'PLAYER_LEFT') {
+                    updateLobbyStatus(data.totalPlayers, data.isReady);
+                } else if (data.type === 'GAME_STARTED') {
+                    onGameStarted(data.question);
+                } else if (data.type === 'SCORE_UPDATE') {
+                    onScoreUpdate(data);
+                } else if (data.type === 'GAME_OVER') {
+                    onGameOver(data);
+                }
+            };
+        }
+
+        async function renderQrCode(roomCode) {
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = "";
+
+            let host = window.location.host;
+            try {
+                const res = await fetch('/api/ip');
+                const data = await res.json();
+                if (data.ip && data.ip !== 'localhost') {
+                    const port = window.location.port ? `:${window.location.port}` : '';
+                    host = `${data.ip}${port}`;
+                }
+            } catch(e) {}
+
+            const playerUrl = `${window.location.protocol}//${host}/player.html?room=${roomCode}`;
+
+            new QRCode(qrContainer, {
+                text: playerUrl,
+                width: 360,
+                height: 360,
+                colorDark: "#000000",
+                colorLight: "#FFFFFF"
+            });
+        }
+
+        function updateLobbyStatus(totalPlayers, isReady) {
+            const statusEl = document.getElementById('lobby-status');
+            const startBtn = document.getElementById('btn-start-game');
+
+            if (selectedMode === 'single') {
+                if (totalPlayers >= 1) {
+                    statusEl.textContent = "Jogador Conectado";
+                    statusEl.style.color = "#000000";
+                    startBtn.disabled = false;
+                } else {
+                    statusEl.textContent = "Aguardando jogador...";
+                    statusEl.style.color = "#666666";
+                    startBtn.disabled = true;
+                }
+            } else {
+                if (totalPlayers === 0) {
+                    statusEl.textContent = "Aguardando Jogadores 1 e 2...";
+                    statusEl.style.color = "#666666";
+                    startBtn.disabled = true;
+                } else if (totalPlayers === 1) {
+                    statusEl.textContent = "Jogador 1 Conectado. Aguardando Jogador 2...";
+                    statusEl.style.color = "#000000";
+                    startBtn.disabled = true;
+                } else if (totalPlayers >= 2) {
+                    statusEl.textContent = "Jogadores 1 e 2 Conectados";
+                    statusEl.style.color = "#000000";
+                    startBtn.disabled = false;
+                }
+            }
+        }
+
+        function startGame() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: "START_GAME" }));
+            }
+        }
+
+        function onGameStarted(initialQuestion) {
+            showScreen('screen-game');
+            playSound('start');
+
+            timeLeft = 60;
+            currentP1Score = 0;
+            currentP2Score = 0;
+
+            document.getElementById('timer-count').textContent = timeLeft;
+            document.getElementById('progress-fill').style.width = '100%';
+            updateScoreboard();
+
+            if (initialQuestion) {
+                document.getElementById('question-display').textContent = initialQuestion.content;
+            }
+
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-count').textContent = timeLeft;
+                document.getElementById('progress-fill').style.width = `${(timeLeft / 60) * 100}%`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({ type: "TIME_UP" }));
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateScoreboard() {
+            const scoreboardEl = document.getElementById('scoreboard');
+            if (selectedMode === 'single') {
+                scoreboardEl.innerHTML = `<span>Pontuação: ${currentP1Score}</span>`;
+            } else {
+                scoreboardEl.innerHTML = `
+                    <span>Jogador 1: ${currentP1Score}</span>
+                    <span>Jogador 2: ${currentP2Score}</span>
+                `;
+            }
+        }
+
+        function onScoreUpdate(data) {
+            playSound('correct');
+            const feedbackEl = document.getElementById('feedback-banner');
+
+            if (selectedMode === 'single') {
+                currentP1Score = data.score;
+                feedbackEl.innerHTML = "Resposta Correta";
+            } else {
+                currentP1Score = data.p1Score;
+                currentP2Score = data.p2Score;
+                const winnerLabel = data.roundWinner === 1 ? "Jogador 1" : "Jogador 2";
+                feedbackEl.innerHTML = `PONTO PARA ${winnerLabel.toUpperCase()}`;
+            }
+            updateScoreboard();
+
+            setTimeout(() => { feedbackEl.innerHTML = ""; }, 1600);
+
+            if (data.nextQuestion) {
+                document.getElementById('question-display').textContent = data.nextQuestion.content;
+            }
+        }
+
+        function onGameOver(data) {
+            clearInterval(timerInterval);
+            showScreen('screen-gameover');
+
+            const titleEl = document.getElementById('gameover-title');
+            const subtitleEl = document.getElementById('gameover-subtitle');
+            const rankingContainer = document.getElementById('ranking-container');
+
+            if (selectedMode === 'single') {
+                titleEl.textContent = "Ranking";
+                subtitleEl.textContent = `Pontuação final: ${currentP1Score} ponto(s)`;
+                rankingContainer.style.display = 'flex';
+                
+                fetchRanking();
+                const pollRanking = setInterval(fetchRanking, 2000);
+                setTimeout(() => clearInterval(pollRanking), 30000);
+            } else {
+                rankingContainer.style.display = 'none';
+                if (currentP1Score > currentP2Score) {
+                    titleEl.textContent = "Jogador 1 Venceu";
+                    subtitleEl.textContent = `Placar Final: Jogador 1 (${currentP1Score}) x Jogador 2 (${currentP2Score})`;
+                } else if (currentP2Score > currentP1Score) {
+                    titleEl.textContent = "Jogador 2 Venceu";
+                    subtitleEl.textContent = `Placar Final: Jogador 2 (${currentP2Score}) x Jogador 1 (${currentP1Score})`;
+                } else {
+                    titleEl.textContent = "Empate";
+                    subtitleEl.textContent = `Ambos os jogadores fizeram ${currentP1Score} ponto(s)`;
+                }
+            }
+        }
+
+        async function fetchRanking() {
+            try {
+                const res = await fetch('/api/ranking');
+                const ranking = await res.json();
+                const rankingContainer = document.getElementById('ranking-container');
+                rankingContainer.innerHTML = '';
+
+                if (ranking.length === 0) {
+                    rankingContainer.innerHTML = '<p style="color: #666666;">Nenhum resultado registrado.</p>';
+                    return;
+                }
+
+                ranking.forEach((entry, index) => {
+                    const card = document.createElement('div');
+                    let topClass = index === 0 ? 'top-1' : (index === 1 ? 'top-2' : (index === 2 ? 'top-3' : ''));
+                    card.className = `ranking-card ${topClass}`;
+                    
+                    card.innerHTML = `
+                        <span class="rank-pos">${index + 1}º</span>
+                        <span class="rank-name">${escapeHtml(entry.name)}</span>
+                        <span class="rank-score">${entry.score} pts</span>
+                    `;
+                    rankingContainer.appendChild(card);
+                });
+            } catch (e) {
+                console.error("Erro ao buscar ranking:", e);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function resetToMenu() {
+            if (socket) {
+                try { socket.close(); } catch(e) {}
+            }
+            clearInterval(timerInterval);
+            showScreen('screen-menu');
+        }
+    </script>
+</body>
+</html>

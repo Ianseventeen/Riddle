@@ -1,0 +1,41 @@
+# Gradle & Spring Boot Build outputs
+.gradle/
+build/
+bin/
+out/
+HELP.md
+!gradle/wrapper/gradle-wrapper.jar
+
+# Database files (SQLite)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+riddles.db
+
+# Logs
+*.log
+logs/
+
+# IDE & Editor files
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+.apt_generated/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment & Temp files
+.env
+*.env
+tmp/

@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Controle - Riddles</title>
+    <!-- Google Fonts: Cinzel e Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #FFFFFF;
+            --color-surface: #FFFFFF;
+            --color-text: #000000;
+            --color-border: #E5E7EB;
+
+            --font-enigmatic: 'Cinzel', serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-body);
+            touch-action: manipulation;
+        }
+
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem 1rem;
+        }
+
+        h1, h2, h3, .font-heading {
+            font-family: var(--font-enigmatic);
+        }
+
+        .header {
+            text-align: center;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .badge-role {
+            display: inline-block;
+            padding: 0.6rem 1.6rem;
+            border-radius: 50px;
+            font-family: var(--font-enigmatic);
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 2px solid #000000;
+            background: #FFFFFF;
+            color: #000000;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-grow: 1;
+            justify-content: center;
+        }
+
+        .view-section {
+            display: none;
+            width: 100%;
+            text-align: center;
+        }
+
+        .view-section.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .lobby-card {
+            background: var(--color-surface);
+            border: 2px solid #000000;
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            width: 100%;
+        }
+
+        .tv-hint {
+            font-size: 1.1rem;
+            color: #444444;
+            margin-bottom: 1.2rem;
+            font-weight: 600;
+        }
+
+        .input-display {
+            background: #FFFFFF;
+            border: 2px solid #000000;
+            border-radius: 12px;
+            width: 100%;
+            height: 56px;
+            padding: 0 1rem;
+            font-family: var(--font-enigmatic);
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            color: #000000;
+            margin-bottom: 1rem;
+            outline: none;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .key-btn {
+            background: #FFFFFF;
+            border: 1px solid #000000;
+            color: #000000;
+            font-family: var(--font-enigmatic);
+            font-size: 1.6rem;
+            font-weight: 700;
+            padding: 1rem 0;
+            border-radius: 12px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.1s ease;
+        }
+
+        .key-btn:active {
+            background: #000000;
+            color: #FFFFFF;
+        }
+
+        .key-btn.action-btn {
+            background: #F3F4F6;
+            color: #000000;
+        }
+
+        .btn-submit {
+            height: 52px;
+            width: 100%;
+            border-radius: 12px;
+            background: #000000;
+            color: #FFFFFF;
+            font-family: var(--font-enigmatic);
+            font-size: 1.2rem;
+            font-weight: 700;
+            border: 2px solid #000000;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-submit:active {
+            background: #FFFFFF;
+            color: #000000;
+        }
+
+        .feedback-banner {
+            margin-top: 1rem;
+            font-family: var(--font-enigmatic);
+            font-size: 1.1rem;
+            font-weight: 700;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            width: 100%;
+        }
+
+        .feedback-success {
+            background: #D1FAE5;
+            color: #00D084;
+            border: 1px solid #00D084;
+        }
+
+        .feedback-error {
+            background: #FFE3E3;
+            color: #FF6B6B;
+            border: 1px solid #FF6B6B;
+        }
+
+        .form-card {
+            background: #FFFFFF;
+            border: 2px solid #000000;
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            width: 100%;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #444444;
+            margin-bottom: 0.3rem;
+        }
+
+        .form-group input {
+            background: #FFFFFF;
+            border: 1px solid #000000;
+            border-radius: 8px;
+            padding: 0 1rem;
+            height: 48px;
+            font-size: 1rem;
+            color: #000000;
+            width: 100%;
+            outline: none;
+        }
+
+        .microcopy-info {
+            font-size: 0.8rem;
+            color: #666666;
+            margin-top: 0.8rem;
+            line-height: 1.4;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div id="badge-role" class="badge-role">Riddles</div>
+    </div>
+
+    <div class="container">
+        <!-- SEÇÃO 1: LOBBY -->
+        <div id="view-lobby" class="view-section active">
+            <div class="lobby-card">
+                <h2 class="font-heading" style="font-size: 1.5rem; margin-bottom: 0.8rem;">Conectado</h2>
+                <p style="color: #666666; font-size: 1rem;">Aguardando início na TV.</p>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 2: GAMEPLAY -->
+        <div id="view-gameplay" class="view-section">
+            <p class="tv-hint">Digite sua resposta:</p>
+
+            <input type="number" id="resposta-input" class="input-display" readonly placeholder="0">
+
+            <div class="keypad">
+                <button class="key-btn" onclick="pressKey('1')">1</button>
+                <button class="key-btn" onclick="pressKey('2')">2</button>
+                <button class="key-btn" onclick="pressKey('3')">3</button>
+                <button class="key-btn" onclick="pressKey('4')">4</button>
+                <button class="key-btn" onclick="pressKey('5')">5</button>
+                <button class="key-btn" onclick="pressKey('6')">6</button>
+                <button class="key-btn" onclick="pressKey('7')">7</button>
+                <button class="key-btn" onclick="pressKey('8')">8</button>
+                <button class="key-btn" onclick="pressKey('9')">9</button>
+                <button class="key-btn action-btn" onclick="pressKey('-')">-</button>
+                <button class="key-btn" onclick="pressKey('0')">0</button>
+                <button class="key-btn action-btn" onclick="pressKey('DEL')">⌫</button>
+            </div>
+
+            <button class="btn-submit" onclick="submitAnswer()">Enviar</button>
+
+            <div id="feedback" class="feedback-banner"></div>
+        </div>
+
+        <!-- SEÇÃO 3: FORMULÁRIO SINGLE PLAYER -->
+        <div id="view-register" class="view-section">
+            <div class="form-card">
+                <h2 class="font-heading" style="font-size: 1.5rem; margin-bottom: 0.4rem;">Fim de Jogo</h2>
+                <p style="color: #444444; margin-bottom: 1.2rem; font-size: 1rem;">Pontuação: <strong id="final-score-display" style="color: #000000; font-size: 1.2rem;">0</strong> pts</p>
+
+                <div class="form-group">
+                    <label for="player-name">Seu Nome:</label>
+                    <input type="text" id="player-name" placeholder="Ex: Maria Silva">
+                </div>
+                <div class="form-group">
+                    <label for="player-email">Seu E-mail:</label>
+                    <input type="email" id="player-email" placeholder="Ex: maria@email.com">
+                </div>
+
+                <button class="btn-submit" onclick="saveRanking()">Salvar no Ranking</button>
+
+                <p class="microcopy-info">Seu e-mail será usado apenas para envio de certificado, caso você fique entre os 3 primeiros do ranking.</p>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 4: AGRADECIMENTO -->
+        <div id="view-thanks" class="view-section">
+            <div class="lobby-card">
+                <h2 class="font-heading" style="font-size: 1.5rem; margin-bottom: 0.8rem;">Salvo no Ranking</h2>
+                <p style="color: #666666; font-size: 1rem;">Veja sua pontuação na TV.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const room = urlParams.get("room");
+        let socket = null;
+        let currentQuestionId = null;
+        let playerNumber = 1;
+        let gameMode = 'single';
+        let myFinalScore = 0;
+
+        function showView(viewId) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        function connect() {
+            if (!room) {
+                document.getElementById('badge-role').textContent = "Erro: Sala Inválida";
+                return;
+            }
+
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws?role=player&room=${room}`;
+
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => console.log("Conectado à sala", room);
+
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'JOINED_SUCCESS') {
+                    playerNumber = data.playerNumber;
+                    gameMode = data.mode;
+                    updateRoleBadge();
+                    showView('view-lobby');
+                } else if (data.type === 'GAME_STARTED') {
+                    currentQuestionId = data.questionId;
+                    document.getElementById('resposta-input').value = '';
+                    document.getElementById('feedback').textContent = '';
+                    document.getElementById('feedback').className = 'feedback-banner';
+                    showView('view-gameplay');
+                } else if (data.type === 'ANSWER_RESULT') {
+                    handleAnswerResult(data);
+                } else if (data.type === 'ROUND_WON_BY_OTHER') {
+                    handleRoundWonByOther(data);
+                } else if (data.type === 'GAME_OVER') {
+                    myFinalScore = data.score;
+                    if (gameMode === 'single') {
+                        document.getElementById('final-score-display').textContent = myFinalScore;
+                        showView('view-register');
+                    } else {
+                        showView('view-thanks');
+                        document.getElementById('view-thanks').querySelector('h2').textContent = "Fim de Jogo";
+                        document.getElementById('view-thanks').querySelector('p').textContent = "Veja o resultado final na TV!";
+                    }
+                }
+            };
+        }
+
+        function updateRoleBadge() {
+            const badge = document.getElementById('badge-role');
+            if (gameMode === 'single') {
+                badge.textContent = "Single Player";
+            } else {
+                if (playerNumber === 1) {
+                    badge.textContent = "Jogador 1";
+                } else {
+                    badge.textContent = "Jogador 2";
+                }
+            }
+        }
+
+        function pressKey(key) {
+            const input = document.getElementById('resposta-input');
+            if (key === 'DEL') {
+                input.value = input.value.slice(0, -1);
+            } else if (key === '-') {
+                if (!input.value.includes('-')) {
+                    input.value = '-' + input.value;
+                }
+            } else {
+                if (input.value.length < 6) {
+                    input.value += key;
+                }
+            }
+        }
+
+        function submitAnswer() {
+            const input = document.getElementById('resposta-input');
+            const val = input.value.trim();
+            if (val === '' || val === '-') return;
+
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: "SUBMIT_ANSWER",
+                    questionId: currentQuestionId,
+                    valor: parseInt(val, 10)
+                }));
+            }
+        }
+
+        function handleAnswerResult(data) {
+            const fb = document.getElementById('feedback');
+            if (data.correct) {
+                fb.textContent = "Resposta Certa!";
+                fb.className = "feedback-banner feedback-success";
+                document.getElementById('resposta-input').value = '';
+                if (data.nextQuestionId) {
+                    currentQuestionId = data.nextQuestionId;
+                }
+            } else {
+                fb.textContent = "Incorreto, tente de novo!";
+                fb.className = "feedback-banner feedback-error";
+                document.getElementById('resposta-input').value = '';
+            }
+            setTimeout(() => { 
+                fb.textContent = ""; 
+                fb.className = "feedback-banner";
+            }, 1800);
+        }
+
+        function handleRoundWonByOther(data) {
+            const fb = document.getElementById('feedback');
+            const winnerLabel = data.winnerPlayer === 1 ? "Jogador 1" : "Jogador 2";
+            fb.textContent = `Ponto do ${winnerLabel}!`;
+            fb.className = "feedback-banner feedback-error";
+            document.getElementById('resposta-input').value = '';
+            if (data.nextQuestionId) {
+                currentQuestionId = data.nextQuestionId;
+            }
+            setTimeout(() => { 
+                fb.textContent = ""; 
+                fb.className = "feedback-banner";
+            }, 1800);
+        }
+
+        async function saveRanking() {
+            const name = document.getElementById('player-name').value.trim();
+            const email = document.getElementById('player-email').value.trim();
+
+            if (!name) {
+                alert("Por favor, insira seu nome.");
+                return;
+            }
+            if (!email || !email.includes('@')) {
+                alert("Por favor, insira um e-mail válido.");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/ranking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        score: myFinalScore,
+                        mode: 'single'
+                    })
+                });
+
+                if (res.ok) {
+                    showView('view-thanks');
+                } else {
+                    alert("Erro ao salvar no ranking. Tente novamente.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Erro de conexão com o servidor.");
+            }
+        }
+
+        connect();
+    </script>
+</body>
+</html>
