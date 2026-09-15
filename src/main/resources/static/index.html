@@ -449,16 +449,22 @@
             qrContainer.innerHTML = "";
 
             let host = window.location.host;
-            try {
-                const res = await fetch('/api/ip');
-                const data = await res.json();
-                if (data.ip && data.ip !== 'localhost') {
-                    const port = window.location.port ? `:${window.location.port}` : '';
-                    host = `${data.ip}${port}`;
-                }
-            } catch(e) {}
 
-            const playerUrl = `${window.location.protocol}//${host}/player.html?room=${roomCode}`;
+            // Só tenta resolver IP de LAN se estiver rodando localmente
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+            if (isLocal) {
+                try {
+                    const res = await fetch('/api/ip');
+                    const data = await res.json();
+                    if (data.ip && data.ip !== 'localhost') {
+                        const port = window.location.port ? `:${window.location.port}` : '';
+                        host = `${data.ip}${port}`;
+                    }
+                } catch(e) {}
+            }
+
+            const playerUrl = `${window.location.protocol}//${host}/player.html?room=${roomCode}&role=player`;
 
             new QRCode(qrContainer, {
                 text: playerUrl,
