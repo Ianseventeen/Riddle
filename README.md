@@ -1,116 +1,111 @@
-# Riddles 🧩 - Interactive Math Challenge & Multiplayer Game
+# Riddles 🧩 — Desafio de matemática multiplayer em tempo real
 
-An interactive, gamified math riddle application designed for big-screen displays (TV / Notebook) controlled seamlessly via smartphones using QR Codes.
-
-![Riddles Banner](https://img.shields.io/badge/Riddles-Math%20Game-black?style=for-the-badge&logo=java)
+![Riddles](https://img.shields.io/badge/Riddles-Math%20Game-black?style=for-the-badge&logo=java)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4+-brightgreen?style=for-the-badge&logo=springboot)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-blue?style=for-the-badge&logo=sqlite)
 ![WebSocket](https://img.shields.io/badge/WebSocket-Realtime-orange?style=for-the-badge)
 
----
+**🔗 Demo online:** [riddle-86a5.onrender.com](https://riddle-86a5.onrender.com/)
 
-## 🌟 Highlights & Features
+> ⏳ A demo roda no plano gratuito da Render. Se o site estiver "dormindo", o primeiro acesso pode levar de 1 a 2 minutos para carregar. É só aguardar a tela inicial aparecer.
 
-- 📺 **Big-Screen Host View (`tv.html`)**: Clean TV display with 60-second countdown timer, real-time scoreboard, progress tracking, and instant leaderboard podium.
-- 📱 **QR Code Mobile Controller (`player.html`)**: Zero app installation required! Players scan the on-screen QR code to turn their mobile phone into a responsive touch controller with a numeric keypad.
-- ⚡ **Single Player Mode**: Speed challenge where players try to solve as many math riddles as possible within 60 seconds. At the end of the round, players enter their Name and Email to save their score to the Hall of Fame.
-- ⚔️ **Multiplayer Mode (1v1 Dueling)**: Two players scan a single QR Code from their phones to get assigned as **Player 1 (Blue)** and **Player 2 (Red)**. Both players see the same question on TV and attempt to answer simultaneously. The first player to answer correctly wins the point!
-- 💾 **SQLite Leaderboard Database**: Automatically stores player scores, names, emails, and dates in an embedded `riddles.db` database for easy retrieval and manual certificate issuance for Top 1, Top 2, and Top 3 winners.
-- 🌐 **Automatic LAN IP Resolution**: Automatically resolves local Wi-Fi IP addresses so QR codes work instantly across any mobile device connected to the same network.
-- 🖤 **Minimalist & Enigmatic Design**: Elegant black-and-white interface powered by the *Cinzel* typography.
+**English summary:** Riddles is a real-time math game for big screens. The host screen (TV or laptop) shows the questions, and players use their own phones as controllers by scanning a QR code, with no app to install. Built with Java 21, Spring Boot, WebSockets and SQLite. Live demo above.
 
 ---
 
-## 🛠️ Technology Stack
+## 📖 Sobre o projeto
 
-### Backend
-- **Java 21+**
-- **Spring Boot 3.4+** (Web MVC & WebSockets)
-- **Spring Data JPA & SQLite JDBC** (`org.xerial:sqlite-jdbc`)
-- **Gson** (JSON Parsing)
+Aplicação gamificada de desafios de matemática (nível de 5º ano), pensada para telões e notebooks e controlada pelos celulares dos jogadores via QR code. Foi desenvolvida no projeto de extensão **Gamificando Saberes**, da UERJ, e apresentada ao público no stand de tecnologia da UERJ no evento *Planos para o Futuro*: o evento reuniu milhares de pessoas, centenas passaram pelo stand e dezenas jogaram ao vivo.
 
-### Frontend
-- **HTML5 & CSS3** (CSS Custom Properties & Flexbox Layouts)
-- **Vanilla JavaScript** (WebSockets API & Web Audio API for native sound effects)
-- **QRCode.js** (Dynamic client-side QR Code rendering)
-- **Google Fonts** (*Cinzel* for enigmatic titles & *Inter* for body text)
+## ⚡ Teste em 1 minuto
 
----
+1. Abra a [demo](https://riddle-86a5.onrender.com/) no computador e aguarde carregar.
+2. Escolha **Single Player** ou **Multiplayer**.
+3. Escaneie o QR code com a câmera do celular. O celular vira o controle, com teclado numérico, sem instalar nada.
+4. Jogue. No Single Player, resolva o máximo de desafios em 60 segundos. No Multiplayer (use dois celulares), os jogadores disputam 1v1 e quem acertar primeiro ganha o ponto.
 
-## 🚀 Getting Started
+> No fim do Single Player, o ranking pede nome e e-mail para salvar a pontuação. Para testar, pode usar dados fictícios.
 
-### Prerequisites
-- **Java Development Kit (JDK 21 or higher)**
-- **Git**
+## 🎯 O que este projeto demonstra
 
-### Installation & Local Execution
+- **Back-end em Java 21 + Spring Boot**, com API REST e WebSocket.
+- **Tempo real:** partidas 1v1 com placar e respostas sincronizados entre a tela principal e os celulares via WebSocket.
+- **Persistência:** ranking salvo em SQLite com Spring Data JPA.
+- **Front-end sem frameworks:** HTML, CSS e JavaScript puro, com Web Audio API para os efeitos sonoros e QRCode.js para gerar o QR code.
+- **Deploy:** Dockerfile incluído e aplicação publicada na Render.
+- **Uso real:** apresentado a público em evento presencial.
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/riddles-backend.git
-   cd riddles-backend
-   ```
+## 🌟 Funcionalidades
 
-2. **Run the Spring Boot application:**
-   - On Windows (PowerShell / Command Prompt):
-     ```cmd
-     .\gradlew.bat bootRun
-     ```
-   - On Linux / macOS:
-     ```bash
-     ./gradlew bootRun
-     ```
+- 📺 **Tela principal (host):** contagem regressiva de 60 segundos, placar em tempo real, progresso e pódio final.
+- 📱 **Controle pelo celular (`player.html`):** escaneie o QR code e use o celular como controle com teclado numérico, sem instalar app.
+- ⚡ **Single Player:** desafio de velocidade. Ao final, o jogador informa nome e e-mail para entrar no Hall da Fama.
+- ⚔️ **Multiplayer 1v1:** dois jogadores escaneiam o mesmo QR code e viram Player 1 (azul) e Player 2 (vermelho). Os dois veem a mesma pergunta na tela e o primeiro a acertar ganha o ponto.
+- 💾 **Ranking em SQLite (`riddles.db`):** guarda pontuação, nome, e-mail e data, para consulta e emissão manual de certificados do Top 3.
+- 🌐 **IP da rede local automático:** rodando localmente, o QR code funciona em qualquer celular conectado ao mesmo Wi-Fi.
+- 🖤 **Design minimalista** em preto e branco, com a fonte Cinzel.
 
-3. **Open the TV interface:**
-   Open your browser and navigate to:
-   ```
-   http://localhost:8080/tv.html
-   ```
+## 🧱 Arquitetura
 
-4. **Connect your phone:**
-   Select **Single Player** or **Multiplayer** on the TV, scan the QR code with your smartphone (connected to the same Wi-Fi network), and start playing!
+```text
+ TV / Notebook (index.html)                     Celulares (player.html)
+        │  WebSocket /ws?role=tv                       │  WebSocket /ws?role=player&room=CODIGO
+        └──────────────►  Spring Boot (Java 21)  ◄─────┘
+                                  │
+                                  ▼
+                   REST /api/ranking  ──►  SQLite (riddles.db)
+```
 
----
+## 🛠️ Tecnologias
 
-## 🌐 Free Cloud Deployment (Render.com)
+**Back-end**
 
-You can deploy the entire application (Backend + WebSockets + SQLite + Frontend) for free on **Render.com**:
+- Java 21+
+- Spring Boot 3.4+ (Web MVC e WebSockets)
+- Spring Data JPA e SQLite JDBC (`org.xerial:sqlite-jdbc`)
+- Gson (JSON)
 
-1. Push your repository to **GitHub**.
-2. Log into [Render.com](https://render.com) and click **New +** > **Web Service**.
-3. Connect your GitHub repository and configure the following settings:
+**Front-end**
 
-| Property | Value |
-| :--- | :--- |
-| **Language** | `Java` |
-| **Build Command** | `./gradlew build -x test` |
-| **Start Command** | `java -jar build/libs/riddles-backend-0.0.1-SNAPSHOT.jar` |
-| **Instance Type** | `Free` |
+- HTML5 e CSS3 (CSS Custom Properties e Flexbox)
+- JavaScript puro (WebSockets API e Web Audio API)
+- QRCode.js (QR code gerado no navegador)
+- Google Fonts (Cinzel nos títulos e Inter no texto)
 
-4. Click **Create Web Service**. Once deployed, Render will generate a public HTTPS URL (e.g., `https://riddles-game.onrender.com/tv.html`) that works globally over 4G/5G and any Wi-Fi connection!
+## 🚀 Como rodar localmente
 
----
+Pré-requisitos: **JDK 21 ou superior** e **Git**.
 
-## 📡 API & WebSocket Reference
+```bash
+git clone https://github.com/Ianseventeen/Riddle.git
+cd Riddle
+./gradlew bootRun      # No Windows: .\gradlew.bat bootRun
+```
 
-### REST Endpoints
+Abra `http://localhost:8080` no navegador (tela principal), escolha o modo de jogo e escaneie o QR code com um celular **conectado ao mesmo Wi-Fi**.
 
-- **`GET /api/ranking`**
-  - Returns the Top 10 leaderboard entries sorted by highest score.
-- **`POST /api/ranking`**
-  - Submits a new player score.
-  - **Payload:** `{ "name": "Alice", "email": "alice@example.com", "score": 12, "mode": "single" }`
-- **`GET /api/ip`**
-  - Returns the server's local LAN IP address for QR Code auto-configuration.
+## ☁️ Deploy
 
-### WebSocket Protocol
+O repositório inclui um `Dockerfile`, e a demo online roda na [Render](https://render.com) (plano gratuito, por isso o primeiro acesso é mais lento).
+
+## 📡 API e WebSocket
+
+### Endpoints REST
+
+- **`GET /api/ranking`**: retorna as 10 melhores pontuações, da maior para a menor.
+- **`POST /api/ranking`**: registra uma nova pontuação. Exemplo de corpo: `{ "name": "Alice", "email": "alice@example.com", "score": 12, "mode": "single" }`
+- **`GET /api/ip`**: retorna o IP da rede local do servidor, usado para configurar o QR code automaticamente.
+
+### Protocolo WebSocket
 
 - **Endpoint:** `/ws`
-- **TV Connection:** `/ws?role=tv&mode=single` or `/ws?role=tv&mode=multi`
-- **Player Connection:** `/ws?role=player&room={ROOM_CODE}`
+- **Tela principal:** `/ws?role=tv&mode=single` ou `/ws?role=tv&mode=multi`
+- **Celular:** `/ws?role=player&room={ROOM_CODE}`
 
----
+## 👤 Autor
 
-## 📜 License
+**Ian de Morais Costa**, estudante de Ciência da Computação na UERJ. [LinkedIn](https://linkedin.com/in/ianmcosta) · [GitHub](https://github.com/Ianseventeen)
 
-This project is open-source and available under the [MIT License](LICENSE).
+## 📜 Licença
+
+Distribuído sob a licença MIT.
