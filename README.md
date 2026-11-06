@@ -4,6 +4,10 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4+-brightgreen?style=for-the-badge&logo=springboot)
 ![SQLite](https://img.shields.io/badge/SQLite-Database-blue?style=for-the-badge&logo=sqlite)
 ![WebSocket](https://img.shields.io/badge/WebSocket-Realtime-orange?style=for-the-badge)
+![Tela inicial do Riddles](docs/home.jpg)
+
+![Lobby multiplayer com QR code](docs/multiplayer.jpg)
+
 
 **🔗 Demo online:** [riddle-86a5.onrender.com](https://riddle-86a5.onrender.com/)
 
