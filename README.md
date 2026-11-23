@@ -1,116 +1,70 @@
-# Riddles 🧩 - Interactive Math Challenge & Multiplayer Game
+# Riddles
 
-An interactive, gamified math riddle application designed for big-screen displays (TV / Notebook) controlled seamlessly via smartphones using QR Codes.
+A real-time multiplayer logic game for phones. One player creates a room, the others join with a QR code or a 5-letter code, and everyone races to solve the same matrix and number-sequence puzzles. The first correct answer takes the point.
 
-![Riddles Banner](https://img.shields.io/badge/Riddles-Math%20Game-black?style=for-the-badge&logo=java)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4+-brightgreen?style=for-the-badge&logo=springboot)
-![SQLite](https://img.shields.io/badge/SQLite-Database-blue?style=for-the-badge&logo=sqlite)
-![WebSocket](https://img.shields.io/badge/WebSocket-Realtime-orange?style=for-the-badge)
+![Java](https://img.shields.io/badge/Java-25-black?style=for-the-badge&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-black?style=for-the-badge&logo=springboot)
+![WebSocket](https://img.shields.io/badge/WebSocket-realtime-black?style=for-the-badge)
 
----
+## How it plays
 
-## 🌟 Highlights & Features
+- **2 to 10 players per room**, each on their own phone. No app install and no account.
+- **Two levels:** Normal (60 s match) and Universitário (90 s match), 40 puzzles each.
+- **Two puzzle types:** a 3×3 matrix with a missing cell, and a number sequence with a missing term.
+- **First correct answer scores.** A wrong answer locks that player out of the current puzzle, so guessing has a cost. If everyone is locked, the answer is revealed with no winner.
+- **Every reveal shows the rule** behind the puzzle, so players learn the pattern.
+- **Final podium** with ties sharing a position, and a one-tap rematch.
 
-- 📺 **Big-Screen Host View (`tv.html`)**: Clean TV display with 60-second countdown timer, real-time scoreboard, progress tracking, and instant leaderboard podium.
-- 📱 **QR Code Mobile Controller (`player.html`)**: Zero app installation required! Players scan the on-screen QR code to turn their mobile phone into a responsive touch controller with a numeric keypad.
-- ⚡ **Single Player Mode**: Speed challenge where players try to solve as many math riddles as possible within 60 seconds. At the end of the round, players enter their Name and Email to save their score to the Hall of Fame.
-- ⚔️ **Multiplayer Mode (1v1 Dueling)**: Two players scan a single QR Code from their phones to get assigned as **Player 1 (Blue)** and **Player 2 (Red)**. Both players see the same question on TV and attempt to answer simultaneously. The first player to answer correctly wins the point!
-- 💾 **SQLite Leaderboard Database**: Automatically stores player scores, names, emails, and dates in an embedded `riddles.db` database for easy retrieval and manual certificate issuance for Top 1, Top 2, and Top 3 winners.
-- 🌐 **Automatic LAN IP Resolution**: Automatically resolves local Wi-Fi IP addresses so QR codes work instantly across any mobile device connected to the same network.
-- 🖤 **Minimalist & Enigmatic Design**: Elegant black-and-white interface powered by the *Cinzel* typography.
+## Built for phones
 
----
+- **Join by QR code:** the lobby shows a QR code with the room link, and the Entrar screen has a camera button that scans it (native `BarcodeDetector`, with a `jsQR` fallback).
+- **Share invite** through the phone's native share sheet.
+- **Automatic reconnection:** if the network drops or the page reloads, the player returns to the same room with the same score (session token with a 30 s grace period).
+- **Screen stays on** during a match (Wake Lock API), and the phone vibrates on right and wrong answers.
+- **Fair timer:** the client corrects its clock against the server's, so every phone shows the same countdown.
 
-## 🛠️ Technology Stack
+## Architecture
 
-### Backend
-- **Java 21+**
-- **Spring Boot 3.4+** (Web MVC & WebSockets)
-- **Spring Data JPA & SQLite JDBC** (`org.xerial:sqlite-jdbc`)
-- **Gson** (JSON Parsing)
+```
+phone ── WebSocket (/ws, JSON) ──► Handler ──► GameRoom (one per room)
+                                                  ├── QuestionBank (questions.json)
+                                                  └── Scheduler (reveal and match timers)
+```
 
-### Frontend
-- **HTML5 & CSS3** (CSS Custom Properties & Flexbox Layouts)
-- **Vanilla JavaScript** (WebSockets API & Web Audio API for native sound effects)
-- **QRCode.js** (Dynamic client-side QR Code rendering)
-- **Google Fonts** (*Cinzel* for enigmatic titles & *Inter* for body text)
+- **Backend:** Java 25, Spring Boot 4 (Web MVC + WebSocket), Gson. All state is in memory; no database.
+- **Game logic is isolated and testable:** `GameRoom` talks to the outside only through `Listener` and `Scheduler` interfaces, so tests drive it with a fake clock. A generation counter makes timers from a previous round harmless.
+- **The server is the authority:** options are shuffled per puzzle, and the answer and rule are sent only at the reveal, so they can't be read from the client.
+- **Frontend:** a single-page app in plain HTML, CSS and ES modules, served by Spring from `src/main/resources/static`. Cinzel for titles and numbers, Inter for text.
 
----
+### WebSocket protocol
 
-## 🚀 Getting Started
-
-### Prerequisites
-- **Java Development Kit (JDK 21 or higher)**
-- **Git**
-
-### Installation & Local Execution
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/riddles-backend.git
-   cd riddles-backend
-   ```
-
-2. **Run the Spring Boot application:**
-   - On Windows (PowerShell / Command Prompt):
-     ```cmd
-     .\gradlew.bat bootRun
-     ```
-   - On Linux / macOS:
-     ```bash
-     ./gradlew bootRun
-     ```
-
-3. **Open the TV interface:**
-   Open your browser and navigate to:
-   ```
-   http://localhost:8080/tv.html
-   ```
-
-4. **Connect your phone:**
-   Select **Single Player** or **Multiplayer** on the TV, scan the QR code with your smartphone (connected to the same Wi-Fi network), and start playing!
-
----
-
-## 🌐 Free Cloud Deployment (Render.com)
-
-You can deploy the entire application (Backend + WebSockets + SQLite + Frontend) for free on **Render.com**:
-
-1. Push your repository to **GitHub**.
-2. Log into [Render.com](https://render.com) and click **New +** > **Web Service**.
-3. Connect your GitHub repository and configure the following settings:
-
-| Property | Value |
+| Client → server | Server → client |
 | :--- | :--- |
-| **Language** | `Java` |
-| **Build Command** | `./gradlew build -x test` |
-| **Start Command** | `java -jar build/libs/riddles-backend-0.0.1-SNAPSHOT.jar` |
-| **Instance Type** | `Free` |
+| `CREATE {nickname, level}` | `JOINED {roomCode, playerId, token}` |
+| `JOIN {room, nickname}` | `ROOM {players, hostId, state}` |
+| `RESUME {room, token}` | `QUESTION {question, endsAt, serverNow}` |
+| `START` | `WRONG`, `LOCKED` |
+| `ANSWER {questionId, value}` | `REVEAL {answer, rule, winnerId, players}` |
+| `REMATCH`, `LEAVE`, `PING` | `GAME_OVER {ranking}`, `ERROR {code, message}`, `PONG` |
 
-4. Click **Create Web Service**. Once deployed, Render will generate a public HTTPS URL (e.g., `https://riddles-game.onrender.com/tv.html`) that works globally over 4G/5G and any Wi-Fi connection!
+## Running locally
 
----
+Requires JDK 25.
 
-## 📡 API & WebSocket Reference
+```bash
+./gradlew bootRun        # Windows: .\gradlew.bat bootRun
+```
 
-### REST Endpoints
+Open `http://<your-pc-ip>:8080` on the computer (not `localhost`, so the QR code points to an address phones on the same Wi-Fi can reach). The in-app camera scanner needs HTTPS, so over a local network use the phone's own camera app on the QR code or type the room code.
 
-- **`GET /api/ranking`**
-  - Returns the Top 10 leaderboard entries sorted by highest score.
-- **`POST /api/ranking`**
-  - Submits a new player score.
-  - **Payload:** `{ "name": "Alice", "email": "alice@example.com", "score": 12, "mode": "single" }`
-- **`GET /api/ip`**
-  - Returns the server's local LAN IP address for QR Code auto-configuration.
+## Tests
 
-### WebSocket Protocol
+```bash
+./gradlew test
+```
 
-- **Endpoint:** `/ws`
-- **TV Connection:** `/ws?role=tv&mode=single` or `/ws?role=tv&mode=multi`
-- **Player Connection:** `/ws?role=player&room={ROOM_CODE}`
+31 tests: the question bank, and the full room lifecycle (joining, the 10-player limit, host transfer, first-correct-answer scoring, lockouts, timers, ties, rematch, reconnection and its expiry).
 
----
+## Deploy
 
-## 📜 License
-
-This project is open-source and available under the [MIT License](LICENSE).
+The repository has a `Dockerfile` (Temurin 25) and deploys to Render as a web service. The port comes from the `PORT` environment variable (default 8080).

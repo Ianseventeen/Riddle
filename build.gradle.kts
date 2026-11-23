@@ -29,3 +29,8 @@ dependencies {
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
+
+// Só o jar executável: o Dockerfile copia build/libs/*.jar para um único arquivo.
+tasks.jar {
+	enabled = false
+}
