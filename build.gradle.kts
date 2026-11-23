@@ -20,17 +20,10 @@ repositories {
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
-	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-	implementation("org.xerial:sqlite-jdbc:3.45.1.0")
-	implementation("org.hibernate.orm:hibernate-community-dialects:6.4.4.Final")
-	compileOnly("org.projectlombok:lombok")
-	annotationProcessor("org.projectlombok:lombok")
+	implementation("com.google.code.gson:gson:2.10.1")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-websocket-test")
-	testCompileOnly("org.projectlombok:lombok")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	testAnnotationProcessor("org.projectlombok:lombok")
-	implementation("com.google.code.gson:gson:2.10.1")
 }
 
 tasks.withType<Test> {

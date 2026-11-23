@@ -1,318 +1,281 @@
 package com.riddles.riddles_backend.websocket;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.riddles.riddles_backend.Level;
 import com.riddles.riddles_backend.Player;
-import com.riddles.riddles_backend.Question;
+import com.riddles.riddles_backend.QuestionBank;
 import org.jspecify.annotations.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.security.SecureRandom;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
-public class Handler extends TextWebSocketHandler {
+/**
+ * Ponte entre o WebSocket e as salas. Protocolo (JSON, campo {@code type}):
+ *
+ * <pre>
+ * celular → servidor
+ *   CREATE  {nickname, level}       cria a sala e entra como host
+ *   JOIN    {room, nickname}        entra numa sala existente
+ *   RESUME  {room, token}           volta depois de perder a conexão
+ *   START   {}                      host começa a partida
+ *   ANSWER  {questionId, value}     responde a pergunta atual
+ *   REMATCH {}                      host volta todos ao lobby
+ *   LEAVE   {}                      sai da sala
+ *   PING    {}                      mantém a conexão viva
+ *
+ * servidor → celular
+ *   JOINED, ROOM, QUESTION, WRONG, LOCKED, REVEAL, GAME_OVER, ERROR, PONG
+ * </pre>
+ */
+public class Handler extends TextWebSocketHandler implements GameRoom.Listener {
+
+    private static final Logger log = LoggerFactory.getLogger(Handler.class);
+    private static final String CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    private static final int CODE_LENGTH = 5;
+    private static final int MAX_ROOMS = 500;
+    private static final int MAX_PAYLOAD = 4096;
+
+    private record Binding(GameRoom room, Player player) {}
 
     private final Map<String, GameRoom> rooms = new ConcurrentHashMap<>();
-    private final Map<String, String> sessionToRoom = new ConcurrentHashMap<>();
-    private final List<Question> todasPerguntas;
+    private final Map<String, Binding> bindings = new ConcurrentHashMap<>();
+    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+
+    private final QuestionBank bank;
+    private final GameRoom.Scheduler scheduler;
+    private final Random random = new SecureRandom();
     private final Gson gson = new Gson();
 
+    public Handler(QuestionBank bank, GameRoom.Scheduler scheduler) {
+        this.bank = bank;
+        this.scheduler = scheduler;
+        log.info("Perguntas carregadas: {}", bank.size());
+    }
+
     public Handler() {
-        try (InputStream is = getClass().getResourceAsStream("/questions.json")) {
-            if (is != null) {
-                InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-                Question[] array = gson.fromJson(reader, Question[].class);
-                todasPerguntas = Arrays.asList(array);
-            } else {
-                todasPerguntas = new ArrayList<>();
+        this(QuestionBank.loadDefault(), executorScheduler());
+    }
+
+    private static GameRoom.Scheduler executorScheduler() {
+        ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "riddles-timers");
+            t.setDaemon(true);
+            return t;
+        });
+        return new GameRoom.Scheduler() {
+            @Override public long now() { return System.currentTimeMillis(); }
+            @Override public Runnable schedule(Runnable task, long delayMs) {
+                ScheduledFuture<?> f = exec.schedule(() -> {
+                    try {
+                        task.run();
+                    } catch (RuntimeException e) {
+                        log.error("Erro numa tarefa agendada", e);
+                    }
+                }, delayMs, TimeUnit.MILLISECONDS);
+                return () -> f.cancel(false);
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Erro ao carregar perguntas: " + e.getMessage(), e);
-        }
-        System.out.println("Perguntas carregadas: " + todasPerguntas.size());
+        };
+    }
+
+    // ------------------------------------------------------------------ ciclo de vida
+
+    @Override
+    public void afterConnectionEstablished(@NonNull WebSocketSession session) {
+        // Garante que envios de threads diferentes (timer e requisições) não se atropelem.
+        sessions.put(session.getId(), new ConcurrentWebSocketSessionDecorator(session, 5000, 256 * 1024));
     }
 
     @Override
-    public void afterConnectionEstablished(@NonNull WebSocketSession session) throws Exception {
-        Map<String, String> params = parseQueryParams(session.getUri() != null ? session.getUri().getQuery() : null);
-        String role = params.getOrDefault("role", "player");
-        String mode = params.getOrDefault("mode", "single");
-        String roomCode = params.get("room");
-
-        if ("tv".equalsIgnoreCase(role)) {
-            roomCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-            GameRoom newRoom = new GameRoom(roomCode, mode, session, todasPerguntas);
-            rooms.put(roomCode, newRoom);
-            sessionToRoom.put(session.getId(), roomCode);
-
-            Map<String, Object> resp = new HashMap<>();
-            resp.put("type", "ROOM_CREATED");
-            resp.put("roomCode", roomCode);
-            resp.put("mode", mode);
-            session.sendMessage(new TextMessage(gson.toJson(resp)));
-            System.out.println("TV conectada! Nova sala criada: " + roomCode + " (" + mode + ")");
-
-        } else {
-            if (roomCode == null || !rooms.containsKey(roomCode)) {
-                sendErrorAndClose(session, "Sala não encontrada: " + roomCode);
-                return;
-            }
-
-            GameRoom room = rooms.get(roomCode);
-            Player player = room.addPlayer(session);
-
-            if (player == null) {
-                sendErrorAndClose(session, "Sala " + roomCode + " já está lotada.");
-                return;
-            }
-
-            sessionToRoom.put(session.getId(), roomCode);
-
-            // Confirm join to Player
-            Map<String, Object> playerResp = new HashMap<>();
-            playerResp.put("type", "JOINED_SUCCESS");
-            playerResp.put("playerNumber", player.playerNumber);
-            playerResp.put("mode", room.mode);
-            playerResp.put("roomCode", roomCode);
-            session.sendMessage(new TextMessage(gson.toJson(playerResp)));
-
-            // Notify TV about new player
-            Map<String, Object> tvNotify = new HashMap<>();
-            tvNotify.put("type", "PLAYER_JOINED");
-            tvNotify.put("playerNumber", player.playerNumber);
-            tvNotify.put("totalPlayers", room.players.size());
-            tvNotify.put("isReady", room.isReadyToStart());
-
-            if (room.tvSession != null && room.tvSession.isOpen()) {
-                room.tvSession.sendMessage(new TextMessage(gson.toJson(tvNotify)));
-            }
-
-            System.out.println("Jogador " + player.playerNumber + " entrou na sala " + roomCode);
+    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
+        WebSocketSession s = sessions.remove(session.getId());
+        Binding b = bindings.remove(session.getId());
+        if (b != null && b.player().session == s) {
+            b.room().disconnected(b.player());
         }
     }
 
     @Override
-    public void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) throws Exception {
-        String roomCode = sessionToRoom.get(session.getId());
-        if (roomCode == null || !rooms.containsKey(roomCode)) {
-            return;
-        }
+    public void handleTextMessage(@NonNull WebSocketSession raw, @NonNull TextMessage message) {
+        WebSocketSession session = sessions.get(raw.getId());
+        if (session == null) return;
+        if (message.getPayloadLength() > MAX_PAYLOAD) return;
 
-        GameRoom room = rooms.get(roomCode);
         JsonObject json;
         try {
             json = JsonParser.parseString(message.getPayload()).getAsJsonObject();
-        } catch (Exception e) {
-            System.out.println("Mensagem inválida recebida: " + message.getPayload());
+        } catch (RuntimeException e) {
             return;
         }
+        String type = str(json, "type").toUpperCase();
 
-        String type = json.has("type") ? json.get("type").getAsString() : "";
-
-        if ("START_GAME".equalsIgnoreCase(type)) {
-            if (session.getId().equals(room.tvSession.getId())) {
-                room.state = "PLAYING";
-                room.currentQuestionIndex = 0;
-                Question firstQuestion = room.getCurrentQuestion();
-
-                // Notify TV
-                Map<String, Object> tvMsg = new HashMap<>();
-                tvMsg.put("type", "GAME_STARTED");
-                tvMsg.put("question", firstQuestion);
-                tvMsg.put("mode", room.mode);
-                sendMessageSafely(room.tvSession, gson.toJson(tvMsg));
-
-                // Notify Players
-                Map<String, Object> playerMsg = new HashMap<>();
-                playerMsg.put("type", "GAME_STARTED");
-                playerMsg.put("questionId", firstQuestion != null ? firstQuestion.id : null);
-                playerMsg.put("mode", room.mode);
-
-                for (Player p : room.players) {
-                    playerMsg.put("playerNumber", p.playerNumber);
-                    sendMessageSafely(p.session, gson.toJson(playerMsg));
+        try {
+            switch (type) {
+                case "CREATE" -> create(session, json);
+                case "JOIN" -> join(session, json);
+                case "RESUME" -> resume(session, json);
+                case "START" -> {
+                    Binding b = requireBinding(session);
+                    b.room().start(b.player());
                 }
-            }
-        } else if ("SUBMIT_ANSWER".equalsIgnoreCase(type)) {
-            if (!"PLAYING".equalsIgnoreCase(room.state)) {
-                return;
-            }
-
-            String questionId = json.has("questionId") ? json.get("questionId").getAsString() : "";
-            int valorSubmitted = json.has("valor") ? json.get("valor").getAsInt() : Integer.MIN_VALUE;
-
-            Question currentQ = room.getCurrentQuestion();
-            if (currentQ == null || !currentQ.id.equals(questionId)) {
-                return; // answer for old or wrong question
-            }
-
-            Player senderPlayer = findPlayerBySession(room, session);
-            if (senderPlayer == null) return;
-
-            boolean correct = (valorSubmitted == currentQ.answer);
-
-            if ("single".equalsIgnoreCase(room.mode)) {
-                if (correct) {
-                    senderPlayer.score++;
-                    Question nextQ = room.nextQuestion();
-
-                    // Response to Player
-                    Map<String, Object> pResp = new HashMap<>();
-                    pResp.put("type", "ANSWER_RESULT");
-                    pResp.put("correct", true);
-                    pResp.put("score", senderPlayer.score);
-                    pResp.put("nextQuestionId", nextQ != null ? nextQ.id : null);
-                    sendMessageSafely(senderPlayer.session, gson.toJson(pResp));
-
-                    // Broadcast update to TV
-                    Map<String, Object> tvResp = new HashMap<>();
-                    tvResp.put("type", "SCORE_UPDATE");
-                    tvResp.put("score", senderPlayer.score);
-                    tvResp.put("correct", true);
-                    tvResp.put("nextQuestion", nextQ);
-                    sendMessageSafely(room.tvSession, gson.toJson(tvResp));
-                } else {
-                    // Send wrong feedback to player
-                    Map<String, Object> pResp = new HashMap<>();
-                    pResp.put("type", "ANSWER_RESULT");
-                    pResp.put("correct", false);
-                    pResp.put("message", "Incorreto! Tente novamente.");
-                    sendMessageSafely(senderPlayer.session, gson.toJson(pResp));
-                }
-            } else if ("multi".equalsIgnoreCase(room.mode)) {
-                if (correct) {
-                    senderPlayer.score++;
-                    Question nextQ = room.nextQuestion();
-
-                    Player p1 = room.players.size() > 0 ? room.players.get(0) : null;
-                    Player p2 = room.players.size() > 1 ? room.players.get(1) : null;
-
-                    // Notify TV
-                    Map<String, Object> tvResp = new HashMap<>();
-                    tvResp.put("type", "SCORE_UPDATE");
-                    tvResp.put("p1Score", p1 != null ? p1.score : 0);
-                    tvResp.put("p2Score", p2 != null ? p2.score : 0);
-                    tvResp.put("roundWinner", senderPlayer.playerNumber);
-                    tvResp.put("nextQuestion", nextQ);
-                    sendMessageSafely(room.tvSession, gson.toJson(tvResp));
-
-                    // Notify Players
-                    for (Player p : room.players) {
-                        Map<String, Object> pResp = new HashMap<>();
-                        if (p.playerNumber == senderPlayer.playerNumber) {
-                            pResp.put("type", "ANSWER_RESULT");
-                            pResp.put("correct", true);
-                            pResp.put("score", p.score);
-                        } else {
-                            pResp.put("type", "ROUND_WON_BY_OTHER");
-                            pResp.put("winnerPlayer", senderPlayer.playerNumber);
-                        }
-                        pResp.put("nextQuestionId", nextQ != null ? nextQ.id : null);
-                        sendMessageSafely(p.session, gson.toJson(pResp));
+                case "ANSWER" -> {
+                    Binding b = requireBinding(session);
+                    JsonElement v = json.get("value");
+                    if (v == null || !v.isJsonPrimitive() || !v.getAsJsonPrimitive().isNumber()) {
+                        throw new GameRoom.GameException("INVALID_OPTION", "Alternativa inválida.");
                     }
-                } else {
-                    // Incorrect answer in Multiplayer: don't penalize, just inform sender to try again!
-                    Map<String, Object> pResp = new HashMap<>();
-                    pResp.put("type", "ANSWER_RESULT");
-                    pResp.put("correct", false);
-                    pResp.put("message", "Incorreto! Tente novamente.");
-                    sendMessageSafely(senderPlayer.session, gson.toJson(pResp));
+                    b.room().answer(b.player(), str(json, "questionId"), v.getAsInt());
                 }
+                case "REMATCH" -> {
+                    Binding b = requireBinding(session);
+                    b.room().rematch(b.player());
+                }
+                case "LEAVE" -> leaveCurrent(session);
+                case "PING" -> sendRaw(session, Map.of("type", "PONG"));
+                default -> { /* ignora tipos desconhecidos */ }
             }
-        } else if ("TIME_UP".equalsIgnoreCase(type)) {
-            if (session.getId().equals(room.tvSession.getId())) {
-                room.state = "FINISHED";
+        } catch (GameRoom.GameException e) {
+            sendError(session, e.code, e.getMessage());
+        } catch (RuntimeException e) {
+            log.warn("Erro ao tratar mensagem {}", type, e);
+            sendError(session, "INTERNAL", "Algo deu errado. Tente de novo.");
+        }
+    }
 
-                // Notify TV
-                Map<String, Object> tvMsg = new HashMap<>();
-                tvMsg.put("type", "GAME_OVER");
-                tvMsg.put("mode", room.mode);
-                sendMessageSafely(room.tvSession, gson.toJson(tvMsg));
+    // ------------------------------------------------------------------ ações
 
-                // Notify Players
-                for (Player p : room.players) {
-                    Map<String, Object> pMsg = new HashMap<>();
-                    pMsg.put("type", "GAME_OVER");
-                    pMsg.put("score", p.score);
-                    pMsg.put("playerNumber", p.playerNumber);
-                    pMsg.put("mode", room.mode);
-                    sendMessageSafely(p.session, gson.toJson(pMsg));
-                }
+    private void create(WebSocketSession session, JsonObject json) throws GameRoom.GameException {
+        Level level;
+        try {
+            level = Level.fromId(str(json, "level"));
+        } catch (IllegalArgumentException e) {
+            throw new GameRoom.GameException("INVALID_LEVEL", "Escolha Normal ou Universitário.");
+        }
+        if (rooms.size() >= MAX_ROOMS) throw new GameRoom.GameException("SERVER_FULL", "Servidor cheio. Tente daqui a pouco.");
+
+        leaveCurrent(session);
+        GameRoom room = newRoom(level);
+        try {
+            Player player = room.join(str(json, "nickname"), session);
+            bindings.put(session.getId(), new Binding(room, player));
+            log.info("Sala {} criada ({})", room.code, level.id);
+        } catch (GameRoom.GameException e) {
+            rooms.remove(room.code, room);
+            throw e;
+        }
+    }
+
+    private void join(WebSocketSession session, JsonObject json) throws GameRoom.GameException {
+        GameRoom room = findRoom(str(json, "room"));
+        leaveCurrent(session);
+        Player player = room.join(str(json, "nickname"), session);
+        bindings.put(session.getId(), new Binding(room, player));
+    }
+
+    private void resume(WebSocketSession session, JsonObject json) throws GameRoom.GameException {
+        GameRoom room = findRoom(str(json, "room"));
+        String token = str(json, "token");
+        Binding current = bindings.get(session.getId());
+        if (current != null && current.room() != room) leaveCurrent(session);
+
+        Player player;
+        WebSocketSession previous;
+        synchronized (room) {
+            Player existing = room.players().stream()
+                    .filter(p -> p.token.equals(token)).findFirst().orElse(null);
+            previous = existing != null ? existing.session : null;
+            player = room.resume(token, session);
+        }
+        if (player == null) throw new GameRoom.GameException("RESUME_FAILED", "Não foi possível voltar para a sala.");
+        bindings.put(session.getId(), new Binding(room, player));
+
+        // Se o mesmo jogador estava aberto em outra conexão (outra aba), ela é encerrada.
+        if (previous != null && previous != session) {
+            bindings.remove(previous.getId());
+            try {
+                previous.close(CloseStatus.NORMAL);
+            } catch (Exception ignored) {
+                // a conexão antiga já pode estar morta
             }
         }
+    }
+
+    private void leaveCurrent(WebSocketSession session) {
+        Binding b = bindings.remove(session.getId());
+        if (b != null) b.room().leave(b.player());
+    }
+
+    // ------------------------------------------------------------------ GameRoom.Listener
+
+    @Override
+    public void send(Player to, Map<String, Object> message) {
+        if (to.session != null) sendRaw(to.session, message);
     }
 
     @Override
-    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) throws Exception {
-        String roomCode = sessionToRoom.get(session.getId());
-        if (roomCode != null && rooms.containsKey(roomCode)) {
-            GameRoom room = rooms.get(roomCode);
-
-            if (room.tvSession != null && room.tvSession.getId().equals(session.getId())) {
-                // TV disconnected
-                rooms.remove(roomCode);
-                System.out.println("TV se desconectou. Sala " + roomCode + " encerrada.");
-            } else {
-                // Player disconnected
-                room.players.removeIf(p -> p.session.getId().equals(session.getId()));
-                Map<String, Object> tvNotify = new HashMap<>();
-                tvNotify.put("type", "PLAYER_LEFT");
-                tvNotify.put("totalPlayers", room.players.size());
-                tvNotify.put("isReady", room.isReadyToStart());
-                sendMessageSafely(room.tvSession, gson.toJson(tvNotify));
-            }
-        }
-        sessionToRoom.remove(session.getId());
+    public void roomEmpty(GameRoom room) {
+        rooms.remove(room.code, room);
+        log.info("Sala {} encerrada", room.code);
     }
 
-    private Player findPlayerBySession(GameRoom room, WebSocketSession session) {
-        for (Player p : room.players) {
-            if (p.session.getId().equals(session.getId())) {
-                return p;
-            }
+    // ------------------------------------------------------------------ utilitários
+
+    private GameRoom newRoom(Level level) {
+        while (true) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < CODE_LENGTH; i++) sb.append(CODE_ALPHABET.charAt(random.nextInt(CODE_ALPHABET.length())));
+            GameRoom room = new GameRoom(sb.toString(), level, bank.forLevel(level), this, scheduler, random);
+            if (rooms.putIfAbsent(room.code, room) == null) return room;
         }
-        return null;
     }
 
-    private Map<String, String> parseQueryParams(String query) {
-        Map<String, String> params = new HashMap<>();
-        if (query != null && !query.trim().isEmpty()) {
-            for (String pair : query.split("&")) {
-                String[] keyValue = pair.split("=");
-                if (keyValue.length >= 2) {
-                    params.put(keyValue[0], keyValue[1]);
-                } else if (keyValue.length == 1) {
-                    params.put(keyValue[0], "");
-                }
-            }
-        }
-        return params;
+    private GameRoom findRoom(String code) throws GameRoom.GameException {
+        GameRoom room = rooms.get(code.trim().toUpperCase());
+        if (room == null) throw new GameRoom.GameException("ROOM_NOT_FOUND", "Sala não encontrada. Confira o código.");
+        return room;
     }
 
-    private void sendErrorAndClose(WebSocketSession session, String errorMsg) {
+    private Binding requireBinding(WebSocketSession session) throws GameRoom.GameException {
+        Binding b = bindings.get(session.getId());
+        if (b == null) throw new GameRoom.GameException("NOT_IN_ROOM", "Você não está em uma sala.");
+        return b;
+    }
+
+    private static String str(JsonObject json, String key) {
+        JsonElement e = json.get(key);
+        return e != null && e.isJsonPrimitive() ? e.getAsString() : "";
+    }
+
+    private void sendError(WebSocketSession session, String code, String message) {
+        Map<String, Object> err = new LinkedHashMap<>();
+        err.put("type", "ERROR");
+        err.put("code", code);
+        err.put("message", message);
+        sendRaw(session, err);
+    }
+
+    private void sendRaw(WebSocketSession session, Map<String, Object> message) {
+        if (!session.isOpen()) return;
         try {
-            Map<String, Object> err = new HashMap<>();
-            err.put("type", "ERROR");
-            err.put("message", errorMsg);
-            session.sendMessage(new TextMessage(gson.toJson(err)));
-            session.close(CloseStatus.BAD_DATA);
-        } catch (Exception ignored) {}
-    }
-
-    private void sendMessageSafely(WebSocketSession session, String messageText) {
-        if (session != null && session.isOpen()) {
-            try {
-                session.sendMessage(new TextMessage(messageText));
-            } catch (Exception e) {
-                System.out.println("Erro ao enviar mensagem WS: " + e.getMessage());
-            }
+            session.sendMessage(new TextMessage(gson.toJson(message)));
+        } catch (Exception e) {
+            log.debug("Falha ao enviar para {}: {}", session.getId(), e.getMessage());
         }
     }
 }
