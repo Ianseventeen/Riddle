@@ -1,0 +1,66 @@
+/*
+ * Riddles — tokens do design (espelham as variáveis do Figma "Riddles — Design").
+ * Estilo original do jogo: Cinzel (enigmática) + Inter, preto e branco,
+ * ouro/prata/bronze só no pódio. A inversão preto/branco marca estado.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;600&display=swap");
+
+:root {
+  /* cor/ */
+  --tinta: #000000;
+  --papel: #ffffff;
+  --borda: #e5e7eb;
+  --texto-fraco: #6b7280;
+  --acerto: #00a86b;
+  --acerto-fundo: #d1fae5;
+  --erro: #e5484d;
+  --erro-fundo: #ffe3e3;
+
+  /* podio/ */
+  --ouro: #d4af37;
+  --prata: #a0a0a0;
+  --bronze: #cd7f32;
+
+  /* jogador/0..9 (índice = Player.color no servidor) */
+  --j0: #2563eb; --j1: #dc2626; --j2: #059669; --j3: #d97706; --j4: #7c3aed;
+  --j5: #db2777; --j6: #0891b2; --j7: #65a30d; --j8: #ea580c; --j9: #475569;
+
+  /* tipografia */
+  --fonte-enigma: "Cinzel", Georgia, serif;
+  --fonte-texto: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* espaço e forma */
+  --gutter: 24px;
+  --raio-campo: 8px;
+  --raio: 12px;
+  --raio-cartao: 16px;
+  --alvo: 56px;
+
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--fonte-texto);
+  font-size: 17px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

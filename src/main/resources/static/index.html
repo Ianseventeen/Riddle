@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Matrizes e sequências de lógica para jogar com até 10 amigos, cada um no seu celular.">
+  <title>Riddles</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='black'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='40' font-weight='900' text-anchor='middle' fill='white'%3E%3F%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+<!-- 01 Home -->
+<main class="tela" id="tela-home" data-tela="home">
+  <div class="espaco"></div>
+  <div class="marca">
+    <div class="selo" aria-hidden="true">?</div>
+    <h1 class="titulo-marca">Riddles</h1>
+    <p class="descricao">Matrizes e sequências de lógica para jogar com até 10 amigos, cada um no seu celular.</p>
+  </div>
+  <div class="espaco"></div>
+  <div class="acoes">
+    <button class="botao" data-ir="criar">Criar sala</button>
+    <button class="botao secundario" data-ir="entrar">Entrar com código</button>
+  </div>
+</main>
+
+<!-- 02 Criar sala -->
+<main class="tela" id="tela-criar" data-tela="criar" hidden>
+  <button class="voltar" data-ir="home">‹ Voltar</button>
+  <h2 class="titulo">Criar sala</h2>
+  <form class="formulario" id="form-criar" novalidate>
+    <label class="campo">
+      <span class="rotulo">Seu apelido</span>
+      <input class="entrada" name="nickname" maxlength="16" autocomplete="nickname" required>
+      <span class="dica">É assim que os outros jogadores vão te ver.</span>
+    </label>
+    <fieldset class="campo niveis">
+      <legend class="rotulo">Nível</legend>
+      <label class="nivel">
+        <input type="radio" name="level" value="normal" checked>
+        <span class="nivel-texto"><b>Normal</b><span>Regras diretas: somas, dobros, quadrados.</span></span>
+        <span class="nivel-tempo">60 s</span>
+      </label>
+      <label class="nivel">
+        <input type="radio" name="level" value="universitario">
+        <span class="nivel-texto"><b>Universitário</b><span>Regras compostas: potências, primos, raízes.</span></span>
+        <span class="nivel-tempo">90 s</span>
+      </label>
+    </fieldset>
+    <p class="erro-form" role="alert"></p>
+    <div class="espaco"></div>
+    <button class="botao" type="submit">Criar sala</button>
+  </form>
+</main>
+
+<!-- 03 Entrar na sala -->
+<main class="tela" id="tela-entrar" data-tela="entrar" hidden>
+  <button class="voltar" data-ir="home">‹ Voltar</button>
+  <h2 class="titulo">Entrar na sala</h2>
+  <form class="formulario" id="form-entrar" novalidate>
+    <div class="campo">
+      <label class="rotulo" for="codigo">Código da sala</label>
+      <div class="codigo-linha">
+        <input class="entrada entrada-codigo" id="codigo" name="room" maxlength="5" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" inputmode="text" required>
+        <button class="botao-camera" type="button" id="abrir-camera" aria-label="Ler QR code com a câmera">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14.5 4h-5L7.5 6.5H4.5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h15a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-3L14.5 4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+      </div>
+      <span class="dica">Digite o código ou toque na câmera para ler o QR code de quem criou a sala.</span>
+    </div>
+    <label class="campo">
+      <span class="rotulo">Seu apelido</span>
+      <input class="entrada" name="nickname" maxlength="16" autocomplete="nickname" required>
+    </label>
+    <p class="erro-form" role="alert"></p>
+    <div class="espaco"></div>
+    <button class="botao" type="submit">Entrar</button>
+  </form>
+</main>
+
+<!-- 04 Lobby -->
+<main class="tela" id="tela-lobby" data-tela="lobby" hidden>
+  <div class="lobby-codigo">
+    <span class="rotulo-fraco">Código da sala</span>
+    <span class="codigo-grande" id="lobby-codigo"></span>
+    <span class="rotulo-fraco" id="lobby-nivel"></span>
+  </div>
+  <section class="convite">
+    <div class="qr" id="lobby-qr" aria-label="QR code para entrar na sala" role="img"></div>
+    <div class="convite-texto">
+      <p>Aponte a câmera para entrar direto, ou mande o convite.</p>
+      <button class="pilula" id="compartilhar">Compartilhar convite</button>
+    </div>
+  </section>
+  <section class="jogadores">
+    <div class="jogadores-cabecalho">
+      <h3>Jogadores</h3>
+      <span class="rotulo-fraco" id="lobby-contagem"></span>
+    </div>
+    <ul class="lista-jogadores" id="lobby-jogadores"></ul>
+  </section>
+  <div class="espaco"></div>
+  <div class="acoes">
+    <button class="botao" id="comecar">Começar partida</button>
+    <p class="dica centro" id="lobby-dica"></p>
+    <button class="link" id="sair-lobby">Sair da sala</button>
+  </div>
+</main>
+
+<!-- 05–07 Pergunta, bloqueio e revelação -->
+<main class="tela tela-jogo" id="tela-jogo" data-tela="jogo" hidden>
+  <header class="cabecalho-jogo">
+    <div class="linha-jogo">
+      <span class="rotulo-fraco" id="jogo-numero"></span>
+      <span class="segundos" id="jogo-segundos" aria-live="off"></span>
+    </div>
+    <div class="trilho" aria-hidden="true"><i id="jogo-barra"></i></div>
+    <ul class="placar" id="jogo-placar" aria-label="Placar"></ul>
+  </header>
+  <section class="tabua" id="jogo-tabua" aria-label="Questão"></section>
+  <p class="enunciado" id="jogo-enunciado"></p>
+  <div class="espaco"></div>
+  <div class="aviso" id="jogo-aviso" aria-live="polite"></div>
+  <div class="alternativas" id="jogo-alternativas"></div>
+</main>
+
+<!-- 08 Resultado -->
+<main class="tela" id="tela-resultado" data-tela="resultado" hidden>
+  <div class="resultado-titulo">
+    <h2 class="titulo centro">Fim de jogo</h2>
+    <p class="rotulo-fraco centro" id="resultado-resumo"></p>
+  </div>
+  <div class="podio" id="resultado-podio"></div>
+  <ol class="demais" id="resultado-demais"></ol>
+  <div class="espaco"></div>
+  <div class="acoes">
+    <button class="botao" id="jogar-de-novo">Jogar de novo</button>
+    <button class="botao secundario" id="sair-resultado">Sair da sala</button>
+    <p class="dica centro" id="resultado-dica"></p>
+  </div>
+</main>
+
+<!-- Leitor de QR code -->
+<dialog class="leitor" id="leitor" aria-label="Ler QR code">
+  <div class="leitor-quadro">
+    <video id="leitor-video" playsinline muted></video>
+    <div class="leitor-mira" aria-hidden="true"></div>
+  </div>
+  <p class="leitor-texto" id="leitor-texto">Aponte para o QR code da sala.</p>
+  <button class="botao secundario" id="leitor-fechar">Cancelar</button>
+</dialog>
+
+<!-- Conexão -->
+<div class="conexao" id="conexao" role="status" hidden>Reconectando…</div>
+
+</body>
+</html>
