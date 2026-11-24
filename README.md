@@ -9,6 +9,14 @@
 
 > ⏳ A demo roda no plano gratuito da Render. Se o site estiver "dormindo", o primeiro acesso pode levar de 1 a 2 minutos para carregar. É só aguardar a tela inicial aparecer.
 
+<p align="center">
+  <img src="docs/novo-home.png" width="19%" alt="Tela inicial">
+  <img src="docs/novo-lobby.png" width="19%" alt="Lobby com QR code e jogadores">
+  <img src="docs/novo-pergunta.png" width="19%" alt="Pergunta de matriz">
+  <img src="docs/novo-revelacao.png" width="19%" alt="Revelação da resposta com a regra">
+  <img src="docs/novo-resultado.png" width="19%" alt="Pódio no fim de jogo">
+</p>
+
 **English summary:** Riddles is a real-time multiplayer logic game for phones. One player creates a room, 2 to 10 friends join by QR code, and everyone races to solve the same matrix and number-sequence puzzles; the first correct answer takes the point. Built with Java 25, Spring Boot 4 and WebSockets, with 31 automated tests. Live demo above.
 
 ---
