@@ -1,70 +1,120 @@
-# Riddles
-
-A real-time multiplayer logic game for phones. One player creates a room, the others join with a QR code or a 5-letter code, and everyone races to solve the same matrix and number-sequence puzzles. The first correct answer takes the point.
+# Riddles 🧩 — Jogo multiplayer de lógica em tempo real
 
 ![Java](https://img.shields.io/badge/Java-25-black?style=for-the-badge&logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1-black?style=for-the-badge&logo=springboot)
-![WebSocket](https://img.shields.io/badge/WebSocket-realtime-black?style=for-the-badge)
+![WebSocket](https://img.shields.io/badge/WebSocket-tempo%20real-black?style=for-the-badge)
+![Testes](https://img.shields.io/badge/testes-31%20JUnit-black?style=for-the-badge)
 
-## How it plays
+**🔗 Demo online:** [riddle-86a5.onrender.com](https://riddle-86a5.onrender.com/)
 
-- **2 to 10 players per room**, each on their own phone. No app install and no account.
-- **Two levels:** Normal (60 s match) and Universitário (90 s match), 40 puzzles each.
-- **Two puzzle types:** a 3×3 matrix with a missing cell, and a number sequence with a missing term.
-- **First correct answer scores.** A wrong answer locks that player out of the current puzzle, so guessing has a cost. If everyone is locked, the answer is revealed with no winner.
-- **Every reveal shows the rule** behind the puzzle, so players learn the pattern.
-- **Final podium** with ties sharing a position, and a one-tap rematch.
+> ⏳ A demo roda no plano gratuito da Render. Se o site estiver "dormindo", o primeiro acesso pode levar de 1 a 2 minutos para carregar. É só aguardar a tela inicial aparecer.
 
-## Built for phones
+**English summary:** Riddles is a real-time multiplayer logic game for phones. One player creates a room, 2 to 10 friends join by QR code, and everyone races to solve the same matrix and number-sequence puzzles; the first correct answer takes the point. Built with Java 25, Spring Boot 4 and WebSockets, with 31 automated tests. Live demo above.
 
-- **Join by QR code:** the lobby shows a QR code with the room link, and the Entrar screen has a camera button that scans it (native `BarcodeDetector`, with a `jsQR` fallback).
-- **Share invite** through the phone's native share sheet.
-- **Automatic reconnection:** if the network drops or the page reloads, the player returns to the same room with the same score (session token with a 30 s grace period).
-- **Screen stays on** during a match (Wake Lock API), and the phone vibrates on right and wrong answers.
-- **Fair timer:** the client corrects its clock against the server's, so every phone shows the same countdown.
+---
 
-## Architecture
+## 📖 Sobre o projeto
 
+O Riddles nasceu no projeto de extensão **Gamificando Saberes**, da UERJ, e foi apresentado ao público no stand de tecnologia da UERJ no evento *Planos para o Futuro*: o evento reuniu milhares de pessoas, centenas passaram pelo stand e dezenas jogaram ao vivo.
+
+A primeira versão era um quiz de matemática para telão, com os celulares como controle. A versão atual foi recriada para ser jogada **só no celular**: cada jogador usa o próprio aparelho, e a disputa passou a ser de **raciocínio lógico** (matrizes e sequências), para grupos de 2 a 10 pessoas.
+
+## ⚡ Teste em 1 minuto
+
+1. Abra a [demo](https://riddle-86a5.onrender.com/) no celular e toque em **Criar sala**.
+2. Escolha um apelido e o nível (**Normal**, 60 s, ou **Universitário**, 90 s).
+3. Em outro celular (ou em outra aba), escaneie o QR code do lobby, toque no botão de câmera, ou digite o código de 5 letras.
+4. O host toca em **Começar**. Quem acertar primeiro leva o ponto; quem errar fica bloqueado naquela pergunta.
+
+## 🎯 O que este projeto demonstra
+
+- **Back-end em Java 25 + Spring Boot 4** com WebSocket e um protocolo próprio em JSON.
+- **Tempo real com concorrência:** até 10 jogadores respondem ao mesmo tempo e só um leva o ponto, validado com simulação de 10 clientes simultâneos.
+- **Lógica isolada e testável:** a sala (`GameRoom`) fala com o resto do sistema por interfaces (`Listener` e `Scheduler`), e os testes usam um relógio simulado. **31 testes JUnit.**
+- **Servidor como autoridade:** a resposta e a regra só são enviadas na revelação, e as alternativas são embaralhadas a cada pergunta, então não dá para trapacear pelo navegador.
+- **Front-end sem frameworks:** SPA em HTML, CSS e JavaScript puro (ES modules), pensada para celular.
+- **Design no Figma:** variáveis de cor, componentes com variantes e as 8 telas do jogo.
+- **Deploy:** Dockerfile incluído e aplicação publicada na Render.
+
+## 🌟 Funcionalidades
+
+- 👥 **Salas de 2 a 10 jogadores**, sem instalar app e sem cadastro. Se o host sair, outro jogador assume.
+- 🧠 **80 questões em dois níveis**, de dois tipos: matriz 3×3 com uma célula faltando e sequência numérica com um termo faltando.
+- 🔒 **Errou, ficou bloqueado** naquela pergunta, então chutar tem custo. Se todos errarem, a resposta é revelada sem vencedor.
+- 💡 **Toda revelação mostra a regra** da questão, para o jogador aprender o padrão.
+- 🏆 **Pódio final** (empatados dividem a posição) e **revanche** com um toque.
+- 📷 **Entrar por QR code:** o lobby mostra o QR com o link da sala, e a tela de entrar tem um botão de câmera que lê o QR (BarcodeDetector, com jsQR como alternativa).
+- 📤 **Compartilhar convite** pelo menu nativo do celular (WhatsApp etc.).
+- 🔄 **Reconexão automática:** se a internet cair ou a página recarregar, o jogador volta à sala com a mesma pontuação (token de sessão com 30 s de tolerância).
+- 📱 **Feito para celular:** a tela não apaga durante a partida (Wake Lock), o celular vibra ao acertar e errar, e o cronômetro é sincronizado com o relógio do servidor.
+- 🖤 **Design minimalista** em preto e branco, com Cinzel nos títulos e números e Inter no texto.
+
+## 🧱 Arquitetura
+
+```text
+ Celulares (SPA em static/)
+        │  WebSocket /ws (JSON)
+        ▼
+ Handler ──► GameRoom (uma por sala, estado em memória)
+                ├── QuestionBank  (questions.json)
+                └── Scheduler     (timers da revelação e da partida)
 ```
-phone ── WebSocket (/ws, JSON) ──► Handler ──► GameRoom (one per room)
-                                                  ├── QuestionBank (questions.json)
-                                                  └── Scheduler (reveal and match timers)
-```
 
-- **Backend:** Java 25, Spring Boot 4 (Web MVC + WebSocket), Gson. All state is in memory; no database.
-- **Game logic is isolated and testable:** `GameRoom` talks to the outside only through `Listener` and `Scheduler` interfaces, so tests drive it with a fake clock. A generation counter makes timers from a previous round harmless.
-- **The server is the authority:** options are shuffled per puzzle, and the answer and rule are sent only at the reveal, so they can't be read from the client.
-- **Frontend:** a single-page app in plain HTML, CSS and ES modules, served by Spring from `src/main/resources/static`. Cinzel for titles and numbers, Inter for text.
+Sem banco de dados: as salas vivem em memória e somem quando todos saem.
 
-### WebSocket protocol
+## 🛠️ Tecnologias
 
-| Client → server | Server → client |
-| :--- | :--- |
-| `CREATE {nickname, level}` | `JOINED {roomCode, playerId, token}` |
-| `JOIN {room, nickname}` | `ROOM {players, hostId, state}` |
-| `RESUME {room, token}` | `QUESTION {question, endsAt, serverNow}` |
-| `START` | `WRONG`, `LOCKED` |
-| `ANSWER {questionId, value}` | `REVEAL {answer, rule, winnerId, players}` |
-| `REMATCH`, `LEAVE`, `PING` | `GAME_OVER {ranking}`, `ERROR {code, message}`, `PONG` |
+**Back-end:** Java 25, Spring Boot 4.1 (Web MVC e WebSocket), Gson, JUnit 5.
 
-## Running locally
+**Front-end:** HTML5, CSS3 (Custom Properties, Grid), JavaScript puro (ES modules, WebSocket, Wake Lock, Vibration, Web Share, BarcodeDetector), qrcode-generator, jsQR, Google Fonts (Cinzel e Inter).
 
-Requires JDK 25.
+## 🚀 Como rodar localmente
+
+Pré-requisitos: **JDK 25** e **Git**.
 
 ```bash
-./gradlew bootRun        # Windows: .\gradlew.bat bootRun
+git clone https://github.com/Ianseventeen/Riddle.git
+cd Riddle
+./gradlew bootRun      # No Windows: .\gradlew.bat bootRun
 ```
 
-Open `http://<your-pc-ip>:8080` on the computer (not `localhost`, so the QR code points to an address phones on the same Wi-Fi can reach). The in-app camera scanner needs HTTPS, so over a local network use the phone's own camera app on the QR code or type the room code.
+No computador, abra `http://<IP-do-seu-PC>:8080` (e não `localhost`, para o QR code apontar para um endereço que os celulares no mesmo Wi-Fi alcançam). O botão de câmera do jogo só funciona em HTTPS; na rede local, use a câmera nativa do celular no QR code ou digite o código.
 
-## Tests
+Para rodar os testes:
 
 ```bash
 ./gradlew test
 ```
 
-31 tests: the question bank, and the full room lifecycle (joining, the 10-player limit, host transfer, first-correct-answer scoring, lockouts, timers, ties, rematch, reconnection and its expiry).
+## ☁️ Deploy
 
-## Deploy
+O repositório inclui um `Dockerfile` (Temurin 25), e a demo online roda na [Render](https://render.com) (plano gratuito, por isso o primeiro acesso é mais lento). A porta vem da variável `PORT` (padrão 8080).
 
-The repository has a `Dockerfile` (Temurin 25) and deploys to Render as a web service. The port comes from the `PORT` environment variable (default 8080).
+## 📡 Protocolo WebSocket
+
+Endpoint: `/ws`. Todas as mensagens são JSON com um campo `type`.
+
+| Celular → servidor | Servidor → celular |
+| :--- | :--- |
+| `CREATE {nickname, level}` | `JOINED {roomCode, playerId, token}` |
+| `JOIN {room, nickname}` | `ROOM {players, hostId, state, ...}` |
+| `RESUME {room, token}` | `QUESTION {question, endsAt, serverNow}` |
+| `START` | `WRONG`, `LOCKED` |
+| `ANSWER {questionId, value}` | `REVEAL {answer, rule, winnerId, players}` |
+| `REMATCH`, `LEAVE`, `PING` | `GAME_OVER {ranking}`, `ERROR {code, message}`, `PONG` |
+
+## 🕰️ Versão original (UERJ)
+
+A versão apresentada no evento usava um telão como tela principal e os celulares como controle, com ranking em SQLite.
+
+![Tela inicial da versão original](docs/home.jpg)
+
+![Lobby multiplayer da versão original](docs/multiplayer.jpg)
+
+## 👤 Autor
+
+**Ian de Morais Costa**, estudante de Ciência da Computação na UERJ. [LinkedIn](https://linkedin.com/in/ianmcosta) · [GitHub](https://github.com/Ianseventeen)
+
+## 📜 Licença
+
+Distribuído sob a licença MIT.
